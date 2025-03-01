@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: wallets
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://user:password@db:5432/wallets"
+    command: gunicorn -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
+
+    ports:
+      - "8000:8000"
+
+  liquibase:
+    image: liquibase/liquibase:4.23.2
+    depends_on:
+      - db
+    volumes:
+      - ./liquibase:/liquibase/changelog
+    working_dir: /liquibase/changelog
+    command: >
+      --url=jdbc:postgresql://db:5432/wallets
+      --username=user
+      --password=password
+      --changeLogFile=changelog.xml
+      update
+
+
+volumes:
+  pg_data:
