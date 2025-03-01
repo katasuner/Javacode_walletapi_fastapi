@@ -28,7 +28,7 @@ async def create_wallet_route(request: WalletCreateRequest, db: AsyncSession = D
     return {"wallet_uuid": str(wallet["wallet_uuid"]), "balance": wallet["balance"]}  # Используем wallet_uuid
 
 
-# Получение баланса по wallet_uuid
+
 @router.get("/{wallet_uuid}", response_model=dict, summary="Получение баланса")
 async def get_wallet_balance(wallet_uuid: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Wallet).filter_by(wallet_uuid=wallet_uuid))

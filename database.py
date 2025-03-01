@@ -2,10 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.orm import DeclarativeBase
 import os
 
-# Читаем параметры БД из переменных среды
+
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@db:5432/wallets")
 
-# Создаем асинхронный движок SQLAlchemy
 engine = create_async_engine(DATABASE_URL, echo=False)
 
 # Создаем фабрику сессий

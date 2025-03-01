@@ -4,7 +4,7 @@ from sqlalchemy import text
 from uuid import UUID
 from decimal import Decimal
 
-# Создание кошелька (оставляем ORM)
+# Создание кошелька
 async def create_wallet(db: AsyncSession, initial_balance: float):
     async with db.begin():
         result = await db.execute(
