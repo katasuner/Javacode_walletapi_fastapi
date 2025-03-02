@@ -23,7 +23,7 @@ async def worker_loop():
         # BLPOP блокирующе ждёт элемент из списка operation_queue
         # Если очередь пуста, он будет ждать.
         op = await redis_conn.blpop("operation_queue")
-        # op будет кортеж (queue_name, json_string)
+        # p будет кортеж (queue_name, json_string)
         queue_name, json_str = op
         data = json.loads(json_str)
 
