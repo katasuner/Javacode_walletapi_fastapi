@@ -1,7 +1,7 @@
 import random
 from locust import HttpUser, task, between
 
-WALLET_UUID = "6050391b-5c04-4ae4-b54d-8af1ba4913c0"
+WALLET_UUID = "5a33a9ab-9080-4618-b122-5d4be176d9d1"
 
 class WalletApiUser(HttpUser):
     wait_time = between(1, 3)
