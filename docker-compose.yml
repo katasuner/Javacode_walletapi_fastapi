@@ -92,5 +92,30 @@ services:
     logging:
       driver: "none"
 
+
+  test_migrate:
+    image: liquibase/liquibase:4.23.2
+    depends_on:
+      - db
+    volumes:
+      - ./liquibase:/liquibase/changelog
+    working_dir: /liquibase/changelog
+    command: >
+      --url=jdbc:postgresql://db:5432/test_wallets
+      --username=user
+      --password=password
+      --changeLogFile=changelog.xml
+      update
+
+  tests:
+    build: .
+    depends_on:
+      - db
+      - test_migrate
+    environment:
+      TEST_DATABASE_URL: "postgresql+asyncpg://user:password@db:5432/test_wallets"
+    command: pytest --maxfail=1 --disable-warnings -q
+
+
 volumes:
   pg_data:
