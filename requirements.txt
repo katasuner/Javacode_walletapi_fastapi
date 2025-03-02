@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-asyncpg
+fastapi==0.95.1
+uvicorn==0.22.0
+asyncpg==0.27.0
 sqlalchemy
-pydantic
-gunicorn
+pydantic==1.10.7
+gunicorn==20.1.0
 redis==4.5.5

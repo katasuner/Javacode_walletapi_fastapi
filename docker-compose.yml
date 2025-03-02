@@ -84,8 +84,9 @@ services:
     depends_on:
       - db
       - redis
+      - pgbouncer
     environment:
-      DATABASE_URL: "postgresql+asyncpg://user:password@db:5432/wallets"
+      DATABASE_URL: "postgresql+asyncpg://user:password@pgbouncer:6432/wallets"
       REDIS_URL: "redis://redis:6379"
     command: [ "python", "worker.py" ]
     logging:
