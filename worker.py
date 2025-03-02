@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from services import process_operation
 from decimal import Decimal
 
-DATABASE_URL = "postgresql+asyncpg://user:password@db:5432/wallets"
+DATABASE_URL="postgresql+asyncpg://user:password@pgbouncer:6432/wallets"
 REDIS_URL = "redis://redis:6379"
 
 async def worker_loop():
@@ -38,7 +38,7 @@ async def worker_loop():
                 new_balance = await process_operation(
                     db_session, wallet_uuid, operation_type, amount
                 )
-                print(f"Processed {operation_type} on {wallet_uuid}: new balance={new_balance}")
+                #print(f"Processed {operation_type} on {wallet_uuid}: new balance={new_balance}")
             except Exception as e:
                 print(f"Error processing operation: {e}")
 

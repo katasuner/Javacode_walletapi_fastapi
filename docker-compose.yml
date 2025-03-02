@@ -53,7 +53,7 @@ services:
     environment:
       # Приложение подключается к PgBouncer
       DATABASE_URL: "postgresql+asyncpg://user:password@pgbouncer:6432/wallets"
-    command: gunicorn -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
+    command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
     ports:
       - "8080:8000"
     logging:
