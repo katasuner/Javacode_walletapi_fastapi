@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 from uuid import UUID
 from decimal import Decimal
@@ -8,7 +7,11 @@ from decimal import Decimal
 async def create_wallet(db: AsyncSession, initial_balance: float):
     async with db.begin():
         result = await db.execute(
-            text("INSERT INTO wallet (balance) VALUES (:balance) RETURNING wallet_uuid, balance"),
+            text("""
+                INSERT INTO wallet (balance) 
+                VALUES (:balance) 
+                RETURNING wallet_uuid, balance
+            """),
             {"balance": initial_balance}
         )
         wallet = result.fetchone()
@@ -16,38 +19,47 @@ async def create_wallet(db: AsyncSession, initial_balance: float):
             raise ValueError("Wallet creation failed")
         return {"wallet_uuid": wallet[0], "balance": wallet[1]}
 
-# Операции с кошельком (DEPOSIT / WITHDRAW)
+
+
 async def process_operation(db: AsyncSession, wallet_uuid: UUID, operation_type: str, amount: float) -> float:
+    """
+    Выполняет депозит или снятие денег за 1 SQL UPDATE:
+      - DEPOSIT: увеличивает balance на :amount
+      - WITHDRAW: уменьшает balance на :amount, только если balance >= amount
+    Возвращает новое значение баланса.
+    """
+    amount_dec = Decimal(amount)
+
+    if operation_type == "DEPOSIT":
+        query = text("""
+            UPDATE wallet
+            SET balance = balance + :amount
+            WHERE wallet_uuid = :wallet_uuid
+            RETURNING balance
+        """)
+        params = {"amount": amount_dec, "wallet_uuid": str(wallet_uuid)}
+    elif operation_type == "WITHDRAW":
+        # Аналогично, но "AND balance >= :amount" — условие для списания
+        query = text("""
+            UPDATE wallet
+            SET balance = balance - :amount
+            WHERE wallet_uuid = :wallet_uuid
+              AND balance >= :amount
+            RETURNING balance
+        """)
+        params = {"amount": amount_dec, "wallet_uuid": str(wallet_uuid)}
+    else:
+        raise ValueError("Invalid operation type")
+
     async with db.begin():
-        # Получаем текущий баланс с блокировкой строки
-        result = await db.execute(
-            text("SELECT balance FROM wallet WHERE wallet_uuid = :wallet_uuid FOR UPDATE"),
-            {"wallet_uuid": str(wallet_uuid)}
-        )
+        result = await db.execute(query, params)
         row = result.fetchone()
 
         if not row:
-            raise ValueError("Wallet not found")
+            # Нет возвращённых строк:
+            #   - либо кошелёк не найден,
+            #   - либо (при WITHDRAW) баланс меньше суммы списания
+            raise ValueError("Wallet not found or insufficient funds")
 
-        current_balance = row[0]
-
-        # Приводим amount к Decimal, чтобы не возникала ошибка
-        amount = Decimal(amount)
-
-        # Проверяем операцию
-        if operation_type == "WITHDRAW":
-            if current_balance < amount:
-                raise ValueError("Insufficient funds")
-            new_balance = current_balance - amount
-        elif operation_type == "DEPOSIT":
-            new_balance = current_balance + amount
-        else:
-            raise ValueError("Invalid operation type")
-
-        # Обновляем баланс
-        await db.execute(
-            text("UPDATE wallet SET balance = :new_balance WHERE wallet_uuid = :wallet_uuid"),
-            {"new_balance": new_balance, "wallet_uuid": str(wallet_uuid)}
-        )
-
-    return new_balance
+    # row[0] = новое значение баланса
+    return float(row[0])

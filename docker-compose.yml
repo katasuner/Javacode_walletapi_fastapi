@@ -15,32 +15,81 @@ services:
       interval: 5s
       retries: 5
       start_period: 10s
+    # Запускаем Postgres с нужными настройками
+    command: >
+      postgres
+      -c password_encryption=scram-sha-256
+      -c max_connections=100
+      -c work_mem=8MB
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: wallets
+      AUTH_TYPE: scram-sha-256  # Включаем SCRAM на стороне PgBouncer
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 50
+      LISTEN_PORT: 6432
+    ports:
+      - "6432:6432"
+    depends_on:
+      db:
+        condition: service_healthy
 
   app:
     build: .
     depends_on:
-      db:
-        condition: service_healthy
+      pgbouncer:
+        condition: service_started
+      redis:
+        condition: service_started
     environment:
-      DATABASE_URL: "postgresql+asyncpg://user:password@db:5432/wallets"
-    command: gunicorn -w 6 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
+      # Приложение подключается к PgBouncer
+      DATABASE_URL: "postgresql+asyncpg://user:password@pgbouncer:6432/wallets"
+    command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
     ports:
       - "8080:8000"
+    logging:
+      driver: "none"
 
   liquibase:
     image: liquibase/liquibase:4.23.2
     depends_on:
-      - db
+      - pgbouncer
     volumes:
       - ./liquibase:/liquibase/changelog
     working_dir: /liquibase/changelog
     command: >
-      --url=jdbc:postgresql://db:5432/wallets
+      --url=jdbc:postgresql://pgbouncer:6432/wallets
       --username=user
       --password=password
       --changeLogFile=changelog.xml
       update
 
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://user:password@db:5432/wallets"
+      REDIS_URL: "redis://redis:6379"
+    command: [ "python", "worker.py" ]
+    logging:
+      driver: "none"
 
 volumes:
   pg_data:

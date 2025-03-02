@@ -26,4 +26,15 @@
                  relativeToChangelogFile="true"/>
     </changeSet>
 
+    <changeSet id="003-create-index-walletuuid" author="yourname" runOnChange="true" failOnError="true">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_wallet_uuid" tableName="wallet"/>
+            </not>
+        </preConditions>
+        <comment>Добавление индекса idx_wallet_uuid</comment>
+        <sqlFile path="migrations/003_create_index_walletuuid.sql"
+                 relativeToChangelogFile="true"/>
+    </changeSet>
+
 </databaseChangeLog>
