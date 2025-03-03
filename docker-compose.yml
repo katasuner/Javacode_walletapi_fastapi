@@ -3,19 +3,18 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: wallets
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d wallets"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 5
       start_period: 10s
-    # Запускаем Postgres с нужными настройками
     command: >
       postgres
       -c password_encryption=scram-sha-256
@@ -28,15 +27,15 @@ services:
     image: edoburu/pgbouncer
     restart: always
     environment:
-      DB_HOST: db
-      DB_USER: user
-      DB_PASSWORD: password
-      DB_NAME: wallets
-      AUTH_TYPE: scram-sha-256  # Включаем SCRAM на стороне PgBouncer
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 200
-      DEFAULT_POOL_SIZE: 50
-      LISTEN_PORT: 6432
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      AUTH_TYPE: ${AUTH_TYPE}
+      POOL_MODE: ${POOL_MODE}
+      MAX_CLIENT_CONN: ${MAX_CLIENT_CONN}
+      DEFAULT_POOL_SIZE: ${DEFAULT_POOL_SIZE}
+      LISTEN_PORT: ${LISTEN_PORT}
     ports:
       - "6432:6432"
     depends_on:
@@ -51,8 +50,7 @@ services:
       redis:
         condition: service_started
     environment:
-      # Приложение подключается к PgBouncer
-      DATABASE_URL: "postgresql+asyncpg://user:password@pgbouncer:6432/wallets"
+      DATABASE_URL: ${DATABASE_URL}
     command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app
     ports:
       - "8080:8000"
@@ -67,9 +65,9 @@ services:
       - ./liquibase:/liquibase/changelog
     working_dir: /liquibase/changelog
     command: >
-      --url=jdbc:postgresql://pgbouncer:6432/wallets
-      --username=user
-      --password=password
+      --url=jdbc:postgresql://pgbouncer:6432/${DB_NAME}
+      --username=${DB_USER}
+      --password=${DB_PASSWORD}
       --changeLogFile=changelog.xml
       update
 
@@ -86,8 +84,8 @@ services:
       - redis
       - pgbouncer
     environment:
-      DATABASE_URL: "postgresql+asyncpg://user:password@pgbouncer:6432/wallets"
-      REDIS_URL: "redis://redis:6379"
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
     command: [ "python", "worker.py" ]
     logging:
       driver: "none"
