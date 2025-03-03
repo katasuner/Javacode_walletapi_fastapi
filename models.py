@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Numeric, String, TIMESTAMP, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+
 
 Base = declarative_base()
 
@@ -14,6 +14,5 @@ class Wallet(Base):
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
     updated_at = Column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    transactions = relationship("Transaction", back_populates="wallet")
 
 

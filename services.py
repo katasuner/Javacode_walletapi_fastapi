@@ -12,16 +12,6 @@ from custom_exceptions import (
 )
 
 
-class WalletCreationError(Exception):
-    """Ошибка создания кошелька."""
-    pass
-
-
-class InvalidOperationTypeError(Exception):
-    """Недопустимый тип операции."""
-    pass
-
-
 # Настройка логгера для модуля
 logger = logging.getLogger(__name__)
 
