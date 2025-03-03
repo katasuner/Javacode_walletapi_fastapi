@@ -1,0 +1,20 @@
+# Используем Python 3.11
+FROM python:3.11
+
+# Рабочая директория внутри контейнера
+WORKDIR /app
+
+# Копируем только requirements.txt, чтобы кешировать зависимости
+COPY ../requirements.txt ./
+
+# Устанавливаем зависимости
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем весь код проекта (для тестов)
+COPY .. .
+
+# Устанавливаем переменную PYTHONPATH
+ENV PYTHONPATH=/app
+
+# Запуск тестов по умолчанию (можно переопределить в `docker-compose.test.yml`)
+CMD ["pytest", "--maxfail=1", "--disable-warnings", "-q"]

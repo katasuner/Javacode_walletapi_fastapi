@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: test_wallets  # База данных для тестов
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data_test:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d test_wallets"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      postgres
+      -c password_encryption=scram-sha-256
+      -c max_connections=100
+      -c work_mem=8MB
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+
+  liquibase:
+    image: liquibase/liquibase:4.23.2
+    depends_on:
+      - db
+    volumes:
+      - ../liquibase:/liquibase/changelog
+    working_dir: /liquibase/changelog
+    command: >
+      liquibase
+      --url=jdbc:postgresql://db:5432/test_wallets
+      --username=user
+      --password=password
+      --changeLogFile=changelog.xml
+      update
+
+  tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile.test  # Указываем путь к тестовому Dockerfile
+    depends_on:
+      - db
+      - liquibase
+    environment:
+      TEST_DATABASE_URL: "postgresql+asyncpg://user:password@db:5432/test_wallets"
+    command: ["bash", "-c", "sleep 10 && pytest --maxfail=1 --disable-warnings -q"]  # Ждем завершения миграции
+
+volumes:
+  pg_data_test:
